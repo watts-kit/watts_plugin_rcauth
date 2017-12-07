@@ -17,6 +17,8 @@ apt-get install myproxy
 
 apt-get install globus-proxy-utils
 
+apt-get install python-openssl
+
 ```
 Then, (as *root*) get the needed DEMO CA files:
 

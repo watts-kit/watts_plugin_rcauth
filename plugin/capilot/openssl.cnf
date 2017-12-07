@@ -39,6 +39,7 @@ default_ca = CA_default
 ####################################################################
 [ CA_default ]
 
+### this directory is chdir'ed into by the script
 dir		= ./capilotCA		# Where everything is kept
 certs		= $dir/certs		# Where the issued certs are kept
 crl_dir		= $dir/crl		# Where the issued crl are kept
