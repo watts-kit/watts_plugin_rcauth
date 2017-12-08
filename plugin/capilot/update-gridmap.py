@@ -48,7 +48,6 @@ def lookupPosix(WattsId):
 
 
 def main():
-    ### FIXME use argparse to parse args
     try:
         if len(sys.argv) >= 2:
             Action = sys.argv[1]
