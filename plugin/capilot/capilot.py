@@ -6,31 +6,27 @@ License: MIT License'''
 # -*- coding: utf-8 -*-
 # pylint: disable=bad-whitespace
 
-import urllib    # both urllibs
-import urllib2   # really??
+import urllib
+import urllib2
 import json
 import base64
-import sys       # all of it?
+import sys
 import traceback
-import time      # all of it?
-import os        # all of it?
+import time
+import os
 import tempfile
 import shutil
+# import logging
+# from logging.handlers import RotatingFileHandler
 import subprocess # this and the selected functions of subprocess below?
 from subprocess import check_output as qx # why qx???
 from OpenSSL import crypto
 from myproxy.client import MyProxyClient
 from myproxy.client import MyProxyClientGetError
-### FIXME: I suggest only importing what is precisely required
 ### FIXME: All docstrings are missing
 ### FIXME: Add logging!!!
 
 BITS_RSA = 2048
-### remarks on the shellscript:
-### FIXME: make DIR configurable
-### FIXME: make replacement variables more expressive VAR => @VAR@
-### FIXME: DIR with different possible values is a NoGo
-### FIXME: Make actual use of the DIR!!!
 ### Further remarks are inline
 SCRIPT_CNF = """
 #! /bin/bash
@@ -71,13 +67,16 @@ echo " rm -rf $TMPDIR " > /tmp/capilot.log
 def list_params():
     RequestParams = []
     ConfParams = [{'name':'prefix'             , 'type':'string' , 'default':'foobar'}       ,
+                  {'name':'oauth2_url'         , 'type':'string' , 'default':'https://ca-pilot.aai.egi.eu/oauth2/getcert'} ,
+                  {'name':'plugin_logfile'     , 'type':'string' , 'default':'/var/log/watts/caplugin.log'}                ,
                   {'name':'client_id'          , 'type':'string' , 'default':'id'}           ,
                   {'name':'client_secret'      , 'type':'string' , 'default':'secret'}       ,
                   {'name':'myproxy_server'     , 'type':'string' , 'default':'proxy_server'} ,
                   {'name':'myproxy_cert'       , 'type':'string' , 'default':'usercert'}     ,
                   {'name':'myproxy_key'        , 'type':'string' , 'default':'userkey'}      ,
-                  {'name':'myproxy_key_pwd'    , 'type':'string' , 'default':'secret'}       ,
-                  {'name':'myproxy_server_pwd' , 'type':'string' , 'default':'secret'}       ,
+                  {'name':'myproxy_key_pwd'    , 'type':'string' , 'default':''}             ,
+                  {'name':'myproxy_server_pwd' , 'type':'string' , 'default':''}             ,
+                  {'name':'myproxy_server_dn'  , 'type':'string' , 'default':''}             ,
                   {'name':'proxy_lifetime'     , 'type':'string' , 'default':'43200'}        ,
                   {'name':'host_list'          , 'type':'string' , 'default':''}             ,
                   {'name':'remove_certificate' , 'type':'string' , 'default':'False'}]
@@ -89,18 +88,16 @@ def request_certificate(JObject):
     ClientId       = ConfParams['client_id']
     MYPROXY_SERVER = ConfParams['myproxy_server']
     ClientSecret   = ConfParams['client_secret']
+    OAUTH_URL      = ConfParams['oauth2_url']
 
     CSR, KEY       = generate_csr(MYPROXY_SERVER)
 
-    ### FIXME: This shouldn't be hardcoded, right?
-    Url            = "https://ca-pilot.aai.egi.eu/oauth2/getcert"
     Values         = {'client_id': ClientId,
                       'client_secret': ClientSecret,
                       'access_token':AccessToken,
                       'certreq':CSR}
     Data           = urllib.urlencode(Values)
-    # Req          = urllib2.Request(Url, Data)
-    Req            = Url + '?' + Data
+    Req            = OAUTH_URL + '?' + Data
     Response       = urllib2.urlopen(Req)
     Info           = Response.read()
     # INFO is actually the signed certificate!! 
@@ -155,8 +152,12 @@ def store_credential(JObject, usercert, userkey):
     MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
     PROXY_LIFETIME     = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
-    MYPROXY_SERVER_DN  = str('/C=DE/O=GermanGrid/OU=KIT/CN=master.data.kit.edu')
-    myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+    # MYPROXY_SERVER_DN  = str('/C=DE/O=GermanGrid/OU=KIT/CN=master.data.kit.edu')
+    MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
+    if not MYPROXY_SERVER_DN:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+    else:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
     myproxy_clnt.store(username, MYPROXY_SERVER_PWD, usercert, userkey,
                        MYPROXY_CERT, MYPROXY_KEY, MYPROXY_KEY_PWD, PROXY_LIFETIME)
     return 0
@@ -256,8 +257,11 @@ def put_credential(JObject, usercert, userkey):
     MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
     # PROXY_LIFETIME   = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
-    MYPROXY_SERVER_DN  = str('/C=DE/O=GermanGrid/OU=KIT/CN=master.data.kit.edu')
-    myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+    MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
+    if not MYPROXY_SERVER_DN:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+    else:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
     # get max lifetime for long-lived proxy
     cert               = crypto.load_certificate(crypto.FILETYPE_PEM, usercert)
     notBefore          = cert.get_notBefore()
@@ -287,7 +291,7 @@ def put_credential(JObject, usercert, userkey):
 
     respCode, errorTxt = myproxy_clnt._deserializeResponse(dat)
     if respCode:
-        raise MyProxyClientGetError(errorTxt)
+        raise MyProxyClientGetError("put_credential:1: %s (%s)" % (errorTxt, respCode))
     dat            = conn.recv(MyProxyClient.SERVER_RESP_BLK_SIZE)
     csr_reqst      = crypto.load_certificate_request(crypto.FILETYPE_ASN1, dat)
     csr_reqst      = crypto.dump_certificate_request(crypto.FILETYPE_PEM, csr_reqst)
@@ -310,7 +314,7 @@ def put_credential(JObject, usercert, userkey):
     resp               = conn.recv(MyProxyClient.SERVER_RESP_BLK_SIZE)
     respCode, errorTxt = myproxy_clnt._deserializeResponse(resp)
     if respCode:
-        raise MyProxyClientGetError(errorTxt)
+        raise MyProxyClientGetError("put_credential:1: " + errorTxt)
 
     # not used, implemented above
     # myproxy_clnt.put(username, MYPROXY_SERVER_PWD, usercert, userkey, PROXY_LIFETIME, MYPROXY_CERT, MYPROXY_KEY, MYPROXY_KEY_PWD )
@@ -326,7 +330,7 @@ def req_and_store_cert(JObject):
     subj       = crypto.load_certificate(crypto.FILETYPE_PEM, Cert)
     subj       = subj.get_subject()
     if not deploy_subject(WattsId, subj, HostsList):
-        raise Exception('Deployment of X509 subj in gridmap file failed.')
+        raise Exception("req_and_store_cert: " + 'Deployment of X509 subj in gridmap file failed.')
 
     # return json.dumps({'result':'ok'})
     return 0
@@ -343,8 +347,11 @@ def get_credential(JObject):
     MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
     PROXY_LIFETIME     = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
-    MYPROXY_SERVER_DN  = str('/C=DE/O=GermanGrid/OU=KIT/CN=master.data.kit.edu')
-    myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+    MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
+    if not MYPROXY_SERVER_DN:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+    else:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
     Provider           = 'ca_pilot'
     # check if credential exists
     info               = myproxy_clnt.info(username, 
@@ -369,7 +376,7 @@ def get_credential(JObject):
             req_and_store_cert(JObject)
         except Exception as E:
             UserMsg = 'Please logout and login again to request a new certificate from RCauth'
-            LogMsg = 'Request and store certificate failed with %s'%str(E)
+            LogMsg = 'Request and store certificate failed with "%s"'%str(E)
             return json.dumps({'result':'error', 'user_msg':UserMsg, 'log_msg':LogMsg})
 
     result = myproxy_clnt.get(username=username,
@@ -397,9 +404,12 @@ def remove_credential(JObject):
     MYPROXY_KEY          = ConfParams['myproxy_key']
     MYPROXY_KEY_PWD      = str(ConfParams['myproxy_key_pwd'])
     MYPROXY_SERVER       = ConfParams['myproxy_server']
-    MYPROXY_SERVER_DN    = str('/C=DE/O=GermanGrid/OU=KIT/CN=master.data.kit.edu')
+    MYPROXY_SERVER_DN    = ConfParams['myproxy_server_dn']
     REMOVE_CERTIFICATE   = bool(ConfParams['remove_certificate'])
-    myproxy_clnt         = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+    if not MYPROXY_SERVER_DN:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+    else:
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
     # check if credential exists
     if REMOVE_CERTIFICATE:
         info = myproxy_clnt.info(username,
@@ -435,6 +445,14 @@ def main():
         UserMsg = "Internal error, please contact the administrator"
         JObject = get_jobject()
         if JObject is not None:
+            # Setup logging:
+            # ConfParams           = JObject['conf_params']
+            # PLUGIN_LOGFILE = ConfParams['plugin_logfile']
+            # handler = RotatingFileHandler(PLUGIN_LOGFILE, maxBytes=10000, backupCount=1)
+            # logging.basicConfig(filename=PLUGIN_LOGFILE, level=logging.DEBUG,
+                    # format="[%(asctime)s] {%(filename)s:%(funcName)s:%(lineno)d} %(levelname)s - %(message)s")
+            # logging.info('\n NEW START')
+                #
         # if len(sys.argv) == 2:
         #     Json = str(sys.argv[1])+ '=' * (4 - len(sys.argv[1]) % 4)
             # JObject = json.loads(str(base64.urlsafe_b64decode(Json)))
