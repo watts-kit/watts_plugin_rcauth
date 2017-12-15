@@ -454,12 +454,10 @@ def revoke_info():
 
 def get_jobject():
     Data = ""
-    if 'WATTS_PARAMETER' in os.environ:
-        Data = os.environ['WATTS_PARAMETER']
-    elif len(sys.argv) == 2:
+    if len(sys.argv) == 2:
         Data = sys.argv[1]
     else:
-        return None
+        Data = sys.stdin.read()
     Json = str(Data)+ '=' * (4 - len(Data) % 4)
     JObject = json.loads(str(base64.urlsafe_b64decode(Json)))
     return JObject
