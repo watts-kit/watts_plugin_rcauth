@@ -1,7 +1,9 @@
 #!/usr/bin/env python2
 # vim: tw=100
 '''capilot plugin for WaTTS.
-Author:  Uros.Stevanovic@kit.edu
+Authors:  Uros.Stevanovic@kit.edu
+          Marcus.Hardt@kit.edu
+
 License: MIT License'''
 # -*- coding: utf-8 -*-
 # pylint: disable=bad-whitespace
@@ -16,8 +18,8 @@ import time
 import os
 import tempfile
 import shutil
-# import logging
-# from logging.handlers import RotatingFileHandler
+import logging
+from logging.handlers import RotatingFileHandler
 import subprocess # this and the selected functions of subprocess below?
 from subprocess import check_output as qx # why qx???
 from OpenSSL import crypto
@@ -63,6 +65,14 @@ popd > /dev/null
 echo " rm -rf $TMPDIR " > /tmp/capilot.log
 # rm -r capilotCA
 """
+
+def tracer(fn):
+    from itertools import chain
+    def wrapped(*v, **k):
+        name = fn.__name__
+        logging.info ("%s(%s)" % (name, ", ".join(map(repr, chain(v, k.values())))))
+        return fn(*v, **k)
+    return wrapped
 
 def list_params():
     RequestParams = []
@@ -152,7 +162,6 @@ def store_credential(JObject, usercert, userkey):
     MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
     PROXY_LIFETIME     = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
-    # MYPROXY_SERVER_DN  = str('/C=DE/O=GermanGrid/OU=KIT/CN=master.data.kit.edu')
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
     if not MYPROXY_SERVER_DN:
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
@@ -167,7 +176,8 @@ def deploy_subject(WattsId, X509Name, HostList):
     DN        = ""
     for Entry in EntryList:
         DN  = DN + "/%s=%s"%(Entry[0], Entry[1])
-    ### this needs to be hardcoded??
+    ### FIXME: this needs to be hardcoded??
+    ### The good news is that this function isn't called if host_list is empty
     Cmd     = "/home/watts/.config/watts/update-gridmap.py add %s '%s' hdf-user"%(WattsId, DN)
     AllGood = execute_on_hosts(Cmd, HostList)
     return AllGood
@@ -231,7 +241,7 @@ def create_proxy(ProxyCsr, ProxyCrt, ProxyKey):
     Script_New = Script_New.replace( "@ENDKEY@"   , tmp_key[1] )
     Script_New = Script_New.replace( "@PROXYCSR@" , tmp_csr[1] )
     Script_New = Script_New.replace( "@TMPDIR@"   , tmp_dir )
-    # Script_New = Script_New.replace( "PROXYCERT", tmp_proxy[1] ) ### FIXME: Why is this commented?
+    # Script_New = Script_New.replace( "PROXYCERT", tmp_proxy[1] ) ### FIXME: Why is this commented? PROXYCERT is part of the script!!!
     f = open(tmp_script[1], 'w')
     f.write(Script_New)
     f.close()
@@ -246,6 +256,7 @@ def create_proxy(ProxyCsr, ProxyCrt, ProxyKey):
 
     return new_proxy
 
+# @tracer
 def put_credential(JObject, usercert, userkey):
     username           = JObject['watts_userid']
     ConfParams         = JObject['conf_params']
@@ -262,6 +273,7 @@ def put_credential(JObject, usercert, userkey):
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
     else:
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+
     # get max lifetime for long-lived proxy
     cert               = crypto.load_certificate(crypto.FILETYPE_PEM, usercert)
     notBefore          = cert.get_notBefore()
@@ -284,10 +296,12 @@ def put_credential(JObject, usercert, userkey):
     # send store command - ensure conversion from unicode before writing
     ### Why is this not using myproxy_clnt instance, but the class???
     cmd = MyProxyClient.PUT_CMD % (username, MYPROXY_SERVER_PWD, MAX_LIFETIME)
+    logging.info('sent cmd to myproxy: %s' % str(cmd))
     conn.write(str(cmd))
     # process server response
     ### Why is this not using myproxy_clnt instance, but the class???
     dat = conn.recv(MyProxyClient.SERVER_RESP_BLK_SIZE)
+    logging.info('returned dat:: %s' % str(dat))
 
     respCode, errorTxt = myproxy_clnt._deserializeResponse(dat)
     if respCode:
@@ -348,16 +362,26 @@ def get_credential(JObject):
     PROXY_LIFETIME     = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
+    Provider           = 'ca_pilot'
     if not MYPROXY_SERVER_DN:
+        logging.info('this is the constructor:')
+        logging.info('hostname: %s' % MYPROXY_SERVER)
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
     else:
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
-    Provider           = 'ca_pilot'
     # check if credential exists
+
+    logging.info('this is the info call:')
+    logging.info('username: %s'             % username)
+    logging.info('sslCertFile: %s'          % MYPROXY_CERT)
+    logging.info('sslKeyFile: %s'           % MYPROXY_KEY)
+    logging.info('sslKeyFilePassphrase: %s' % MYPROXY_KEY_PWD)
+    
     info               = myproxy_clnt.info(username, 
                                            sslCertFile = MYPROXY_CERT, 
                                            sslKeyFile = MYPROXY_KEY, 
                                            sslKeyFilePassphrase = MYPROXY_KEY_PWD)
+    logging.info('Just got this info from myproxy: "%s"' % str(info))
     if info[0] == True and (info[2]['CRED_END_TIME'] <= int(time.time() + 12*60*60)):
         result = myproxy_clnt.destroy(username,
                                       sslCertFile = MYPROXY_CERT,
@@ -441,18 +465,19 @@ def get_jobject():
     return JObject
 
 def main():
+    # setup logging:
+    PLUGIN_LOGFILE = '/var/log/watts/plugin_capilot.log'
+    handler = RotatingFileHandler(PLUGIN_LOGFILE, maxBytes=10000, backupCount=1)
+    logging.basicConfig(filename=PLUGIN_LOGFILE, level=logging.DEBUG,
+            format="[%(asctime)s] {%(filename)s:%(funcName)s:%(lineno)d} %(levelname)s - %(message)s")
+    logging.info('\n NEW START')
+
     try:
         UserMsg = "Internal error, please contact the administrator"
         JObject = get_jobject()
         if JObject is not None:
             # Setup logging:
-            # ConfParams           = JObject['conf_params']
-            # PLUGIN_LOGFILE = ConfParams['plugin_logfile']
-            # handler = RotatingFileHandler(PLUGIN_LOGFILE, maxBytes=10000, backupCount=1)
-            # logging.basicConfig(filename=PLUGIN_LOGFILE, level=logging.DEBUG,
-                    # format="[%(asctime)s] {%(filename)s:%(funcName)s:%(lineno)d} %(levelname)s - %(message)s")
-            # logging.info('\n NEW START')
-                #
+                
         # if len(sys.argv) == 2:
         #     Json = str(sys.argv[1])+ '=' * (4 - len(sys.argv[1]) % 4)
             # JObject = json.loads(str(base64.urlsafe_b64decode(Json)))
