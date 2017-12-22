@@ -25,6 +25,7 @@ from subprocess import check_output as qx # why qx???
 from OpenSSL import crypto
 from myproxy.client import MyProxyClient
 from myproxy.client import MyProxyClientGetError
+import passwordclib.client
 ### FIXME: All docstrings are missing
 ### FIXME: Add logging!!!
 
@@ -80,12 +81,12 @@ def list_params():
                   {'name':'oauth2_url'         , 'type':'string' , 'default':'https://ca-pilot.aai.egi.eu/oauth2/getcert'} ,
                   {'name':'plugin_logfile'     , 'type':'string' , 'default':'/var/log/watts/caplugin.log'}                ,
                   {'name':'client_id'          , 'type':'string' , 'default':'id'}           ,
-                  {'name':'client_secret'      , 'type':'string' , 'default':'secret'}       ,
+                  {'name':'client_secret_key'  , 'type':'string' , 'default':'secret'}       ,
                   {'name':'myproxy_server'     , 'type':'string' , 'default':'proxy_server'} ,
                   {'name':'myproxy_cert'       , 'type':'string' , 'default':'usercert'}     ,
                   {'name':'myproxy_key'        , 'type':'string' , 'default':'userkey'}      ,
                   {'name':'myproxy_key_pwd'    , 'type':'string' , 'default':''}             ,
-                  {'name':'myproxy_server_pwd' , 'type':'string' , 'default':''}             ,
+                  {'name':'myproxy_server_pwd_key_id' , 'type':'string' , 'default':''}             ,
                   {'name':'myproxy_server_dn'  , 'type':'string' , 'default':''}             ,
                   {'name':'proxy_lifetime'     , 'type':'string' , 'default':'43200'}        ,
                   {'name':'host_list'          , 'type':'string' , 'default':''}             ,
@@ -110,13 +111,23 @@ def request_certificate(JObject):
     Req            = OAUTH_URL + '?' + Data
     Response       = urllib2.urlopen(Req)
     Info           = Response.read()
-    # INFO is actually the signed certificate!! 
+    # INFO is actually the signed certificate!!
     Creds          = [Info, KEY]
     return tuple(Creds)
 
 ### where do these comments belong?
 # generate CSR function
 # save also key and csr files
+
+def get_secret_from_passwordd(key_id):
+    '''get secret from passwordd and fail if not'''
+    secret = passwordclib.client.get_secret(key_id)
+    if not MYPROXY_SERVER_PWD:
+        logging.error("Could not get password for '%s' from passwordd" % key_id)
+        print ("Could not get password for '%s' from passwordd" % key_id)
+        exit(2)
+    return secret
+
 def generate_csr(input_host_name):
     # to be passed as param TODO
     ### FIXME: What are these doing in here? They don't end up in the EEC, do they?
@@ -156,7 +167,7 @@ def store_credential(JObject, usercert, userkey):
     ConfParams         = JObject['conf_params']
     prefix             = ConfParams['prefix']
     username           = prefix + '_' + username
-    MYPROXY_SERVER_PWD = ConfParams['myproxy_server_pwd']
+    MYPROXY_SERVER_PWD_KEY_ID = ConfParams['myproxy_server_pwd_key_id']
     MYPROXY_CERT       = ConfParams['myproxy_cert']
     MYPROXY_KEY        = ConfParams['myproxy_key']
     MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
@@ -167,6 +178,7 @@ def store_credential(JObject, usercert, userkey):
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
     else:
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+    MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
     myproxy_clnt.store(username, MYPROXY_SERVER_PWD, usercert, userkey,
                        MYPROXY_CERT, MYPROXY_KEY, MYPROXY_KEY_PWD, PROXY_LIFETIME)
     return 0
@@ -262,7 +274,7 @@ def put_credential(JObject, usercert, userkey):
     ConfParams         = JObject['conf_params']
     prefix             = ConfParams['prefix']
     username           = prefix + '_' + username
-    MYPROXY_SERVER_PWD = ConfParams['myproxy_server_pwd']
+    MYPROXY_SERVER_PWD_KEY_ID = ConfParams['myproxy_server_pwd_key_id']
     MYPROXY_CERT       = ConfParams['myproxy_cert']
     MYPROXY_KEY        = ConfParams['myproxy_key']
     MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
@@ -295,6 +307,7 @@ def put_credential(JObject, usercert, userkey):
 
     # send store command - ensure conversion from unicode before writing
     ### Why is this not using myproxy_clnt instance, but the class???
+    MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
     cmd = MyProxyClient.PUT_CMD % (username, MYPROXY_SERVER_PWD, MAX_LIFETIME)
     logging.info('sent cmd to myproxy: %s' % str(cmd))
     conn.write(str(cmd))
@@ -355,7 +368,7 @@ def get_credential(JObject):
     ConfParams         = JObject['conf_params']
     prefix             = ConfParams['prefix']
     username           = prefix + '_' + username
-    MYPROXY_SERVER_PWD = ConfParams['myproxy_server_pwd']
+    MYPROXY_SERVER_PWD_KEY_ID = ConfParams['myproxy_server_pwd_key_id']
     MYPROXY_CERT       = ConfParams['myproxy_cert']
     MYPROXY_KEY        = ConfParams['myproxy_key']
     MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
@@ -403,6 +416,7 @@ def get_credential(JObject):
             LogMsg = 'Request and store certificate failed with "%s"'%str(E)
             return json.dumps({'result':'error', 'user_msg':UserMsg, 'log_msg':LogMsg})
 
+    MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
     result = myproxy_clnt.get(username=username,
                               passphrase=MYPROXY_SERVER_PWD,
                               lifetime = PROXY_LIFETIME,
