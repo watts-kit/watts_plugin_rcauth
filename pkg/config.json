@@ -5,10 +5,9 @@
         "version" : "0.0.1",
         "maintainer" : "KIT/SCC <watts-development@lists.kit.edu>"
     },
-    "archive" : {
-        "targz" : <optional, defaults to "https://github.com/indigo-dc/".archive.name"/archive/v".pkg.version".tar.gz">
-    },
-    "build": {
-    	"bash": <optional, e.g. "./configure && make">
+    "deps" : {
+        "arch" : ["python", "python-openssl"],
+        "deb" : ["python", "python-openssl"],
+        "rpm" : ["python", "python-openssl"]
     }
 }
