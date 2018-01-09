@@ -6,7 +6,7 @@ Authors:  Uros.Stevanovic@kit.edu
 
 License: MIT License'''
 # -*- coding: utf-8 -*-
-# pylint: disable=bad-whitespace
+# pylint: disable=bad-whitespace, invalid-name, logging-not-lazy
 
 import urllib
 import urllib2
@@ -85,7 +85,6 @@ def list_params():
                   {'name':'myproxy_server'     , 'type':'string' , 'default':'proxy_server'} ,
                   {'name':'myproxy_cert'       , 'type':'string' , 'default':'usercert'}     ,
                   {'name':'myproxy_key'        , 'type':'string' , 'default':'userkey'}      ,
-                  {'name':'myproxy_key_pwd'    , 'type':'string' , 'default':''}             ,
                   {'name':'myproxy_server_pwd_key_id' , 'type':'string' , 'default':''}             ,
                   {'name':'myproxy_server_dn'  , 'type':'string' , 'default':''}             ,
                   {'name':'proxy_lifetime'     , 'type':'string' , 'default':'43200'}        ,
@@ -170,7 +169,6 @@ def store_credential(JObject, usercert, userkey):
     MYPROXY_SERVER_PWD_KEY_ID = ConfParams['myproxy_server_pwd_key_id']
     MYPROXY_CERT       = ConfParams['myproxy_cert']
     MYPROXY_KEY        = ConfParams['myproxy_key']
-    MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
     PROXY_LIFETIME     = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
@@ -179,8 +177,15 @@ def store_credential(JObject, usercert, userkey):
     else:
         myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
     MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
-    myproxy_clnt.store(username, MYPROXY_SERVER_PWD, usercert, userkey,
-                       MYPROXY_CERT, MYPROXY_KEY, MYPROXY_KEY_PWD, PROXY_LIFETIME)
+    myproxy_clnt.store(username              = username,
+                       passphrase            = MYPROXY_SERVER_PWD,
+                       certFile              = usercert,
+                       keyFile               = userkey,
+                       sslCertFile           = MYPROXY_CERT,
+                       sslKeyFile            = MYPROXY_KEY,
+                       sslKeyFilePhassphrase = None,
+                       lifetime              = PROXY_LIFETIME,
+                       force                 = True)
     return 0
 
 def deploy_subject(WattsId, X509Name, HostList):
@@ -277,7 +282,6 @@ def put_credential(JObject, usercert, userkey):
     MYPROXY_SERVER_PWD_KEY_ID = ConfParams['myproxy_server_pwd_key_id']
     MYPROXY_CERT       = ConfParams['myproxy_cert']
     MYPROXY_KEY        = ConfParams['myproxy_key']
-    MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
     # PROXY_LIFETIME   = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
@@ -298,8 +302,7 @@ def put_credential(JObject, usercert, userkey):
     notBefore_seconds  = time.mktime(notBefore_struct)
     MAX_LIFETIME       = int(notAfter_seconds - notBefore_seconds - 24*3600)
     conn               = myproxy_clnt._initConnection(certFile = MYPROXY_CERT,
-                                                      keyFile=MYPROXY_KEY,
-                                                      keyFilePassphrase=MYPROXY_KEY_PWD)
+                                                      keyFile=MYPROXY_KEY)
     conn.connect((MYPROXY_SERVER, 7512))
 
     # send globus compatibility stuff
@@ -343,8 +346,7 @@ def put_credential(JObject, usercert, userkey):
     if respCode:
         raise MyProxyClientGetError("put_credential:1: " + errorTxt)
 
-    # not used, implemented above
-    # myproxy_clnt.put(username, MYPROXY_SERVER_PWD, usercert, userkey, PROXY_LIFETIME, MYPROXY_CERT, MYPROXY_KEY, MYPROXY_KEY_PWD )
+    logging.info("put_credential successfully finished")
     return 0
 
 def req_and_store_cert(JObject):
@@ -371,7 +373,6 @@ def get_credential(JObject):
     MYPROXY_SERVER_PWD_KEY_ID = ConfParams['myproxy_server_pwd_key_id']
     MYPROXY_CERT       = ConfParams['myproxy_cert']
     MYPROXY_KEY        = ConfParams['myproxy_key']
-    MYPROXY_KEY_PWD    = str(ConfParams['myproxy_key_pwd'])
     PROXY_LIFETIME     = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
@@ -388,18 +389,15 @@ def get_credential(JObject):
     logging.info('username: %s'             % username)
     logging.info('sslCertFile: %s'          % MYPROXY_CERT)
     logging.info('sslKeyFile: %s'           % MYPROXY_KEY)
-    logging.info('sslKeyFilePassphrase: %s' % MYPROXY_KEY_PWD)
-    
+
     info               = myproxy_clnt.info(username, 
                                            sslCertFile = MYPROXY_CERT, 
-                                           sslKeyFile = MYPROXY_KEY, 
-                                           sslKeyFilePassphrase = MYPROXY_KEY_PWD)
+                                           sslKeyFile = MYPROXY_KEY)
     logging.info('Just got this info from myproxy: "%s"' % str(info))
     if info[0] == True and (info[2]['CRED_END_TIME'] <= int(time.time() + 12*60*60)):
         result = myproxy_clnt.destroy(username,
                                       sslCertFile = MYPROXY_CERT,
-                                      sslKeyFile = MYPROXY_KEY,
-                                      sslKeyFilePassphrase = MYPROXY_KEY_PWD)
+                                      sslKeyFile = MYPROXY_KEY)
         Msg ='Your certificate has expired, therefore it was removed. '+\
              'You will be redirected to login and verify your '+\
              'identity with RCauth to obtain a new one.'
@@ -421,8 +419,7 @@ def get_credential(JObject):
                               passphrase=MYPROXY_SERVER_PWD,
                               lifetime = PROXY_LIFETIME,
                               sslCertFile = MYPROXY_CERT,
-                              sslKeyFile = MYPROXY_KEY,
-                              sslKeyFilePassphrase = MYPROXY_KEY_PWD)
+                              sslKeyFile = MYPROXY_KEY)
     # join all creds in a single file
     full_credential = ''.join([s for s in result])
     Credential = [{'name':'Proxy certificate',
@@ -440,7 +437,6 @@ def remove_credential(JObject):
     # MYPROXY_SERVER_PWD = ConfParams['myproxy_server_pwd']
     MYPROXY_CERT         = ConfParams['myproxy_cert']
     MYPROXY_KEY          = ConfParams['myproxy_key']
-    MYPROXY_KEY_PWD      = str(ConfParams['myproxy_key_pwd'])
     MYPROXY_SERVER       = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN    = ConfParams['myproxy_server_dn']
     REMOVE_CERTIFICATE   = bool(ConfParams['remove_certificate'])
@@ -452,14 +448,12 @@ def remove_credential(JObject):
     if REMOVE_CERTIFICATE:
         info = myproxy_clnt.info(username,
                                  sslCertFile = MYPROXY_CERT,
-                                 sslKeyFile = MYPROXY_KEY,
-                                 sslKeyFilePassphrase = MYPROXY_KEY_PWD)
+                                 sslKeyFile = MYPROXY_KEY)
         # time.sleep(3)
         if info[0]:
             myproxy_clnt.destroy(username,
                                  sslCertFile=MYPROXY_CERT,
-                                 sslKeyFile=MYPROXY_KEY,
-                                 sslKeyFilePassphrase=MYPROXY_KEY_PWD)
+                                 sslKeyFile=MYPROXY_KEY)
     return json.dumps({'result': 'ok'})
 
 def revoke_info():
