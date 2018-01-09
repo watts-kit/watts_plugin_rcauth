@@ -27,7 +27,6 @@ from myproxy.client import MyProxyClient
 from myproxy.client import MyProxyClientGetError
 import passwordclib.client
 ### FIXME: All docstrings are missing
-### FIXME: Add logging!!!
 
 BITS_RSA = 2048
 ### Further remarks are inline
