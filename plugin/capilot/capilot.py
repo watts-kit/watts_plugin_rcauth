@@ -376,6 +376,7 @@ def req_and_store_cert(JObject):
     subj       = crypto.load_certificate(crypto.FILETYPE_PEM, Cert)
     subj       = subj.get_subject()
     if not deploy_subject(WattsId, subj, HostsList):
+        logging.info('Problems deploying the subject')
         raise Exception("req_and_store_cert: " + 'Deployment of X509 subj in gridmap file failed.')
 
     # return json.dumps({'result':'ok'})
@@ -428,7 +429,9 @@ def get_credential(JObject):
             req_and_store_cert(JObject)
         except Exception as E:
             UserMsg = 'Please logout and login again to request a new certificate from RCauth'
+            logging.info = 'Request and store certificate failed with "%s"'%str(E)
             LogMsg = 'Request and store certificate failed with "%s"'%str(E)
+            raise
             return json.dumps({'result':'error', 'user_msg':UserMsg, 'log_msg':LogMsg})
 
     MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
