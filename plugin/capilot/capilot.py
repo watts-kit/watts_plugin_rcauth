@@ -35,7 +35,7 @@ SCRIPT_CNF = """
 #! /bin/bash
 RND=`expr $RANDOM \* $RANDOM`
 TMPDIR=@TMPDIR@
-CONFIGDIR=/etc/watts/plugin.d/capilot
+CONFIGDIR=@CONFIGDIR@
 
 export PROXY_SUBJ=$RND
 export PROXY_INFO=rfc3820_seq_sect_infinite
@@ -260,6 +260,7 @@ def create_proxy(ProxyCsr, ProxyCrt, ProxyKey):
     Script_New = Script_New.replace( "@ENDKEY@"   , tmp_key[1] )
     Script_New = Script_New.replace( "@PROXYCSR@" , tmp_csr[1] )
     Script_New = Script_New.replace( "@TMPDIR@"   , tmp_dir )
+    Script_New = Script_New.replace( "@CONFIGDIR@", plugin_base_dir )
     # Script_New = Script_New.replace( "PROXYCERT", tmp_proxy[1] ) ### FIXME: Why is this commented? PROXYCERT is part of the script!!!
     f = open(tmp_script[1], 'w')
     f.write(Script_New)
