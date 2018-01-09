@@ -133,13 +133,12 @@ def get_secret_from_passwordd(key_id):
     return secret
 
 def generate_csr(input_host_name):
-    # to be passed as param TODO
-    ### FIXME: What are these doing in here? They don't end up in the EEC, do they?
-    C  = 'DE'
-    ST = 'Baden Wuerttemberg'
-    L  = 'Karlsruhe'
-    O  = 'Karlsruhe Institute of Technology'
-    OU = 'SCC'
+    # These are apparantly ignored at the CA
+    C  = 'xx'
+    ST = 'xxxxxxxxxxxxxxxxxx'
+    L  = 'xxxxxxxxx'
+    O  = 'xxxxxxxxx'
+    OU = 'XXX'
     # define rsa TYPE and bits
     TYPE_RSA = crypto.TYPE_RSA
 
