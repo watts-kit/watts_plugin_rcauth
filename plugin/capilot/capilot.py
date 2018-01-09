@@ -180,9 +180,9 @@ def store_credential(JObject, usercert, userkey):
     MYPROXY_SERVER     = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
     if not MYPROXY_SERVER_DN:
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, CACertDir="/etc/grid-security/certificates")
     else:
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN, CACertDir="/etc/grid-security/certificates")
     MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
     myproxy_clnt.store(username              = username,
                        passphrase            = MYPROXY_SERVER_PWD,
@@ -294,9 +294,9 @@ def put_credential(JObject, usercert, userkey):
     MYPROXY_SERVER     = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
     if not MYPROXY_SERVER_DN:
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, CACertDir="/etc/grid-security/certificates")
     else:
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN, CACertDir="/etc/grid-security/certificates")
 
     # get max lifetime for long-lived proxy
     cert               = crypto.load_certificate(crypto.FILETYPE_PEM, usercert)
@@ -391,9 +391,9 @@ def get_credential(JObject):
     if not MYPROXY_SERVER_DN:
         logging.info('this is the constructor:')
         logging.info('hostname: %s' % MYPROXY_SERVER)
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, CACertDir="/etc/grid-security/certificates")
     else:
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN, CACertDir="/etc/grid-security/certificates")
     # check if credential exists
 
     logging.info('this is the info call:')
@@ -453,9 +453,9 @@ def remove_credential(JObject):
     MYPROXY_SERVER_DN    = ConfParams['myproxy_server_dn']
     REMOVE_CERTIFICATE   = bool(ConfParams['remove_certificate'])
     if not MYPROXY_SERVER_DN:
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, CACertDir="/etc/grid-security/certificates")
     else:
-        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN)
+        myproxy_clnt       = MyProxyClient(hostname = MYPROXY_SERVER, serverDN = MYPROXY_SERVER_DN, CACertDir="/etc/grid-security/certificates")
     # check if credential exists
     if REMOVE_CERTIFICATE:
         info = myproxy_clnt.info(username,
