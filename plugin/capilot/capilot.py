@@ -101,6 +101,8 @@ def request_certificate(JObject):
     MYPROXY_SERVER = ConfParams['myproxy_server']
     ClientSecret   = ConfParams['client_secret']
     OAUTH_URL      = ConfParams['oauth2_url']
+    ClientSecretKey= ConfParams['client_secret_key']
+    ClientSecret   = get_secret_from_passwordd(ClientSecretKey)
 
     CSR, KEY       = generate_csr(MYPROXY_SERVER)
 
@@ -122,11 +124,14 @@ def request_certificate(JObject):
 
 def get_secret_from_passwordd(key_id):
     '''get secret from passwordd and fail if not'''
+    logging.info("getting password for '%s' from passwordd" % key_id)
     secret = passwordclib.client.get_secret(key_id)
-    if not MYPROXY_SERVER_PWD:
+    if not secret:
         logging.error("Could not get password for '%s' from passwordd" % key_id)
         print ("Could not get password for '%s' from passwordd" % key_id)
+        raise
         exit(2)
+    logging.info("  => sucess (getting '%s')" % key_id)
     return secret
 
 def generate_csr(input_host_name):
@@ -313,7 +318,10 @@ def put_credential(JObject, usercert, userkey):
 
     # send store command - ensure conversion from unicode before writing
     ### Why is this not using myproxy_clnt instance, but the class???
+    logging.info('getting password for "%s" from passwordd' % MYPROXY_SERVER_PWD_KEY_ID)
     MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
+    logging.info('    => successs')
+    logging.info('calling myproxy.put')
     cmd = MyProxyClient.PUT_CMD % (username, MYPROXY_SERVER_PWD, MAX_LIFETIME)
     logging.info('sent cmd to myproxy: %s' % str(cmd))
     conn.write(str(cmd))
@@ -418,6 +426,7 @@ def get_credential(JObject):
             return json.dumps({'result':'error', 'user_msg':UserMsg, 'log_msg':LogMsg})
 
     MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
+    logging.info ("calling 'get'")
     result = myproxy_clnt.get(username=username,
                               passphrase=MYPROXY_SERVER_PWD,
                               lifetime = PROXY_LIFETIME,
