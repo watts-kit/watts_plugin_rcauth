@@ -89,6 +89,8 @@ def list_params():
                   {'name':'myproxy_server_dn'  , 'type':'string' , 'default':''}             ,
                   {'name':'proxy_lifetime'     , 'type':'string' , 'default':'43200'}        ,
                   {'name':'host_list'          , 'type':'string' , 'default':''}             ,
+                  {'name':'rcauth_op_entry'    , 'type':'string' , 'default':''}             ,
+                  {'name':'plugin_base_dir'    , 'type':'string' , 'default':''}             ,
                   {'name':'remove_certificate' , 'type':'string' , 'default':'False'}]
     return json.dumps({'result':'ok', 'conf_params': ConfParams, 'request_params': RequestParams, 'version':'dev'})
 
@@ -376,7 +378,7 @@ def get_credential(JObject):
     PROXY_LIFETIME     = int(ConfParams['proxy_lifetime'])
     MYPROXY_SERVER     = ConfParams['myproxy_server']
     MYPROXY_SERVER_DN  = ConfParams['myproxy_server_dn']
-    Provider           = 'ca_pilot'
+    Provider           = ConfParams['rcauth_op_entry']
     if not MYPROXY_SERVER_DN:
         logging.info('this is the constructor:')
         logging.info('hostname: %s' % MYPROXY_SERVER)
