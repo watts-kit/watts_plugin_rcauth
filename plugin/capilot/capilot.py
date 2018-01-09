@@ -99,7 +99,6 @@ def request_certificate(JObject):
     ConfParams     = JObject['conf_params']
     ClientId       = ConfParams['client_id']
     MYPROXY_SERVER = ConfParams['myproxy_server']
-    ClientSecret   = ConfParams['client_secret']
     OAUTH_URL      = ConfParams['oauth2_url']
     ClientSecretKey= ConfParams['client_secret_key']
     ClientSecret   = get_secret_from_passwordd(ClientSecretKey)
@@ -235,8 +234,13 @@ def execute_on_hosts(Cmd, Hosts):
 
     return AllGood
 
-def create_proxy(ProxyCsr, ProxyCrt, ProxyKey):
+def create_proxy(ProxyCsr, ProxyCrt, ProxyKey, plugin_base_dir='id10t'):
     # create safe temp folder
+    logging.info('starting create_proxy.')
+    logging.info('parameters are: ')
+    logging.info('    ProxyCsr: "%s"' % ProxyCsr)
+    logging.info('    ProxyCrt: "%s"' % ProxyCrt)
+    logging.info('    ProxyKey: "%s"' % ProxyKey)
     dirpath    = tempfile.mkdtemp()
     tmp_csr    = tempfile.mkstemp(dir = dirpath)
     tmp_cert   = tempfile.mkstemp(dir = dirpath)
@@ -287,6 +291,7 @@ def put_credential(JObject, usercert, userkey):
     ConfParams         = JObject['conf_params']
     prefix             = ConfParams['prefix']
     username           = prefix + '_' + username
+    plugin_base_dir    = ConfParams['plugin_base_dir']
     MYPROXY_SERVER_PWD_KEY_ID = ConfParams['myproxy_server_pwd_key_id']
     MYPROXY_CERT       = ConfParams['myproxy_cert']
     MYPROXY_KEY        = ConfParams['myproxy_key']
@@ -337,7 +342,8 @@ def put_credential(JObject, usercert, userkey):
     csr_reqst      = crypto.load_certificate_request(crypto.FILETYPE_ASN1, dat)
     csr_reqst      = crypto.dump_certificate_request(crypto.FILETYPE_PEM, csr_reqst)
 
-    proxyCertTxt   = create_proxy(csr_reqst, usercert, userkey)
+    proxyCertTxt   = create_proxy(csr_reqst, usercert, userkey, plugin_base_dir)
+    logging.info ('proxyCertTxt: "%s"' % proxyCertTxt)
 
     # proxyCertTxt = open('/home/tts/.config/watts/capilot/proxycert.pem').read()
     proxyCertTxt   = crypto.load_certificate(crypto.FILETYPE_PEM, proxyCertTxt)
