@@ -21,7 +21,6 @@ __contact__ = "Philip.Kershaw@stfc.ac.uk"
 __revision__ = '$Id$'
 import logging
 log = logging.getLogger(__name__)
-
 import sys
 import os
 import socket
@@ -437,7 +436,7 @@ TRUSTED_CERTS=1"""
     del k
     __slots__ += ('__openSSLConfig', '__cfg', '__ssl_verification')
 
-    def __init__(self, cfgFilePath=None, **prop):
+    def __init__(self, cfgFilePath=None, CACertDir=None, **prop):
         """Make any initial settings for client connections to MyProxy
         
         Settings are held in a dictionary which can be set from **prop,
@@ -493,6 +492,11 @@ TRUSTED_CERTS=1"""
         # verifying the MyProxy server's SSL certificate
         self.setDefaultCACertDir()
         
+        # Fix the assumption that different CaACertDirs are used for root
+        # and normal user
+        if CACertDir is not None:
+            self._setCACertDir(CACertDir)
+
         # Any keyword settings override the defaults above
         for opt, val in prop.items():
             setattr(self, opt, val)
@@ -1218,6 +1222,15 @@ private key is not password protected.
                                     keyFilePassphrase=sslKeyFilePassphrase)
         
         conn.connect((self.hostname, self.port))
+
+        # PLUGIN_LOGFILE = '/var/log/watts/plugin_capilot.log'
+        # handler = RotatingFileHandler(PLUGIN_LOGFILE, maxBytes=10000, backupCount=1)
+        # logging.basicConfig(filename=PLUGIN_LOGFILE, level=logging.DEBUG,
+        #         format="[%(asctime)s] {%(filename)s:%(funcName)s:%(lineno)d} %(levelname)s - %(message)s")
+        #
+        # logging.info("self.caCertDir: '%s'" % self.caCertDir)
+        # logging.info("self.__caCertDir: '%s'" % self.__caCertDir)
+        # logging.info("environ X.509 Certdir: '%s'" % os.getenv("X509_CERT_DIR"))
         
         # send globus compatibility stuff
         conn.write('0')
