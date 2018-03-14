@@ -41,6 +41,8 @@ The non-self-explanatory stuff is as follows:
   reqpeated in the openid section. This is because they also need to be
   accessible from the plugin.
 
+One known bug with Watts is, that empty lines with whitespaces will cause
+the config parser to crash and thereby watts won't start.
 
 
 # Dependency Installation and configuration
