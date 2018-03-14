@@ -1,4 +1,50 @@
-## Installing necessary packages
+# Plugin Configuration #
+The capilot plugin needs several configuration variables defined in watts.conf:
+Here is an example:
+
+```
+ service.RCauth_plugin.description                      = DEVEL EGI AAI Pilot Certificates from RCauth Demo CA
+ service.RCauth_plugin.credential_limit                 = infinite
+ service.RCauth_plugin.connection.type                  = local   
+ service.RCauth_plugin.cmd_env_use                      = true    
+ service.RCauth_plugin.parallel_runner                  = 1       
+ service.RCauth_plugin.authz.allow.any.sub.any          = true    
+ service.RCauth_plugin.pass_access_token                = true    
+ service.RCauth_plugin.allow_same_state                 = true    
+ service.RCauth_plugin.cmd                              = /var/lib/watts/plugins/watts_plugin_capilot/plugin/capilot/capilot.py
+ service.RCauth_plugin.plugin.plugin_base_dir           = /var/lib/watts/plugins/watts_plugin_capilot/plugin/capilot/
+ service.RCauth_plugin.plugin.prefix                    = WaTTS   
+ service.RCauth_plugin.plugin.client_id                 = <OIDC client ID>
+ service.RCauth_plugin.plugin.client_secret_key         = <Key for lookup of client secret in passwordd>
+ service.RCauth_plugin.plugin.rcauth_op_entry           = ca_pilot
+ service.RCauth_plugin.plugin.myproxy_server            = master.data.kit.edu
+ service.RCauth_plugin.plugin.myproxy_cert              = /var/lib/watts/.globus/usercert.pem
+ service.RCauth_plugin.plugin.myproxy_key               = /var/lib/watts/.globus/decrypted-userkey.pem
+ # passwordd keys:                                                          
+ service.RCauth_plugin.plugin.myproxy_server_pwd_key_id = myproxy_pwd_key
+ service.RCauth_plugin.plugin.proxy_lifetime            = 43200   
+ service.RCauth_plugin.plugin.remove_certificate        = True    
+```
+
+In principle all config entries ending with '.plugin.' are variables
+passed directly to the plugin, while others are variables destined for
+Watts.
+
+The ``` service.RCauth_plugin.cmd ``` entries should point to the
+capilot.py file of where you placed the git checkout. 
+
+The non-self-explanatory stuff is as follows: 
+
+- plugin.rcauth_op_entry: This points to a WaTTS openid section that is
+  named "ca_pilot" in our case.
+- client_id and client_secret_key hold the same information that is
+  reqpeated in the openid section. This is because they also need to be
+  accessible from the plugin.
+
+
+
+# Dependency Installation and configuration
+## Install additional packages
 
 First, (as *root*) get the latest globus deb package, and install the necessary apps:
 
@@ -9,19 +55,10 @@ dpkg -i globus-toolkit-repo_latest_all.deb
 
 apt-get update
 
-apt-get install apt-transport-https
-
-apt-get install igtf-policy-classic igtf-policy-iota
-
-apt-get install myproxy
-
-apt-get install globus-proxy-utils
-
-apt-get install python-openssl
+apt-get install apt-transport-https igtf-policy-classic igtf-policy-iota myproxy globus-proxy-utils python-openssl python-openssl
 
 ```
 Then, (as *root*) get the needed DEMO CA files:
-
 ```
 cd /etc/grid-security/certificates/
 
@@ -32,13 +69,17 @@ tar -xvf EGISimpleDemoCA.tgz
 rm EGISimpleDemoCA.tgz
 
 ```
-Also install the **pyopenssl** (as *root*):
 
-```
-apt-get install python-openssl
+## Install passwordd
+Passwordd is a daemon that stores passwords in memory. Watts makes heavy
+use of it, so no OIDC client secrets need to be kept in memore. The
+capilot plugin does the same thing.
 
-```
+https://github.com/watts-kit/passwordd
 
+
+## Config ##
+### Globus ###
 Then, as normal user, create **.globus** folder:
 
 ```
@@ -62,5 +103,3 @@ For the configuration of the *capilot* plugin, check the documentation for the
 
 Also check that the *local time* is set as *Europe/Berlin*, (reboot may be
 necessary).
-
-
