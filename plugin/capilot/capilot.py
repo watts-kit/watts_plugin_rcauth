@@ -235,10 +235,10 @@ def execute_on_hosts(Cmd, Hosts):
 def create_proxy(ProxyCsr, ProxyCrt, ProxyKey, plugin_base_dir='id10t'):
     # create safe temp folder
     logging.info('starting create_proxy.')
-    logging.info('parameters are: ')
-    logging.info('    ProxyCsr: "%s"' % ProxyCsr)
-    logging.info('    ProxyCrt: "%s"' % ProxyCrt)
-    logging.info('    ProxyKey: "%s"' % ProxyKey)
+    # logging.info('parameters are: ')
+    # logging.info('    ProxyCsr: "%s"' % ProxyCsr)
+    # logging.info('    ProxyCrt: "%s"' % ProxyCrt)
+    # logging.info('    ProxyKey: "%s"' % ProxyKey)
     dirpath    = tempfile.mkdtemp()
     tmp_csr    = tempfile.mkstemp(dir = dirpath)
     tmp_cert   = tempfile.mkstemp(dir = dirpath)
@@ -340,8 +340,13 @@ def put_credential(JObject, usercert, userkey):
     csr_reqst      = crypto.load_certificate_request(crypto.FILETYPE_ASN1, dat)
     csr_reqst      = crypto.dump_certificate_request(crypto.FILETYPE_PEM, csr_reqst)
 
+    logging.info ('calling create_proxy')
+    # logging.info ('csr_reqst: %s' % csr_reqst)
+    # logging.info ('usercert: %s' % usercert)
+    # logging.info ('userkey: %s' % userkey)
+    # logging.info ('plugin_base_dir: %s' % plugin_base_dir)
     proxyCertTxt   = create_proxy(csr_reqst, usercert, userkey, plugin_base_dir)
-    logging.info ('proxyCertTxt: "%s"' % proxyCertTxt)
+    # logging.info ('proxyCertTxt: "%s"' % proxyCertTxt)
 
     # proxyCertTxt = open('/home/tts/.config/watts/capilot/proxycert.pem').read()
     proxyCertTxt   = crypto.load_certificate(crypto.FILETYPE_PEM, proxyCertTxt)
@@ -433,7 +438,7 @@ def get_credential(JObject):
             return json.dumps({'result':'error', 'user_msg':UserMsg, 'log_msg':LogMsg})
 
     MYPROXY_SERVER_PWD = get_secret_from_passwordd(MYPROXY_SERVER_PWD_KEY_ID)
-    logging.info ("calling 'get'")
+    logging.info ("calling 'myproxy.get'")
     result = myproxy_clnt.get(username=username,
                               passphrase=MYPROXY_SERVER_PWD,
                               lifetime = PROXY_LIFETIME,
