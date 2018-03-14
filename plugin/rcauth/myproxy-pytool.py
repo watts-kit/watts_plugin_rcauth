@@ -9,7 +9,7 @@ from OpenSSL import crypto
 from myproxy.client import MyProxyClient
 from myproxy.client import MyProxyClientGetError
 
-PLUGIN_LOGFILE='/var/log/watts/plugin_capilot.log'
+PLUGIN_LOGFILE='/var/log/watts/plugin_rcauth.log'
 
 logging.basicConfig(filename=PLUGIN_LOGFILE, level=logging.DEBUG,
         format="[%(asctime)s] {%(filename)s:%(funcName)s:%(lineno)d} %(levelname)s - %(message)s")

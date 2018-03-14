@@ -1224,7 +1224,7 @@ private key is not password protected.
         
         conn.connect((self.hostname, self.port))
 
-        # PLUGIN_LOGFILE = '/var/log/watts/plugin_capilot.log'
+        # PLUGIN_LOGFILE = '/var/log/watts/plugin_rcauth.log'
         # handler = RotatingFileHandler(PLUGIN_LOGFILE, maxBytes=10000, backupCount=1)
         # logging.basicConfig(filename=PLUGIN_LOGFILE, level=logging.DEBUG,
         #         format="[%(asctime)s] {%(filename)s:%(funcName)s:%(lineno)d} %(levelname)s - %(message)s")

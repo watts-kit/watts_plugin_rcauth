@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 # vim: tw=100
-'''capilot plugin for WaTTS.
+'''rcauth plugin for WaTTS.
 Authors:  Uros.Stevanovic@kit.edu
           Marcus.Hardt@kit.edu
 
@@ -44,15 +44,15 @@ export PROXY_PATHLENGTH=""
 pushd ./ > /dev/null
 cd $TMPDIR
 
-mkdir -p capilotCA/newcerts
-touch capilotCA/index.txt
+mkdir -p rcauthCA/newcerts
+touch rcauthCA/index.txt
 # serial=$(printf "%x" ${RND} 2> /dev/null)
 serial=$(printf "%x" ${RND})
 if [ $((${#serial}%2)) = 1 ];then
   ### Please add a comment about what the above statement does
   serial=0$serial
 fi
-echo $serial > capilotCA/serial
+echo $serial > rcauthCA/serial
 
 SUBJ=`openssl x509 -noout -in @ENDCERT@ -subject -nameopt esc_2253,esc_ctrl,utf8,dump_nostr,dump_der,sep_multiline,sname | sed '1d;s:^ *:/:'|tr -d '\n'`
 enddate=$(date -ud "$(openssl x509 -enddate -noout -in @ENDCERT@|cut -d= -f2-)" +%Y%m%d%H%M%SZ)
@@ -62,8 +62,8 @@ openssl ca  -batch -notext -in @PROXYCSR@ -cert @ENDCERT@ -keyfile @ENDKEY@ -ext
 # openssl ca  -batch -notext -out PROXYCERT -in @PROXYCSR@ -cert @ENDCERT@ -keyfile @ENDKEY@ -extfile $CONFIGDIR/rfc3820.cnf -config $CONFIGDIR/openssl.cnf -subj "$SUBJ/CN=$RND" -preserveDN -enddate $enddate &> /dev/null
 
 popd > /dev/null
-echo " rm -rf $TMPDIR " > /tmp/capilot.log
-# rm -r capilotCA
+echo " rm -rf $TMPDIR " > /tmp/rcauth.log
+# rm -r rcauthCA
 """
 
 def tracer(fn):
@@ -348,7 +348,6 @@ def put_credential(JObject, usercert, userkey):
     proxyCertTxt   = create_proxy(csr_reqst, usercert, userkey, plugin_base_dir)
     # logging.info ('proxyCertTxt: "%s"' % proxyCertTxt)
 
-    # proxyCertTxt = open('/home/tts/.config/watts/capilot/proxycert.pem').read()
     proxyCertTxt   = crypto.load_certificate(crypto.FILETYPE_PEM, proxyCertTxt)
     proxyCertTxt   = crypto.dump_certificate(crypto.FILETYPE_ASN1, proxyCertTxt)
     endCertTxt     = usercert
@@ -452,7 +451,6 @@ def get_credential(JObject):
                    'rows':30, 'cols':64 ,
                    'save_as': 'x509up_u1000'}]
     return json.dumps({'result':'ok', 'credential': Credential, 'state': username})
-    # return json.dumps({'result':'ok', 'credential': Credential, 'state': 'capilot'})
 
 def remove_credential(JObject):
     # username           = JObject['watts_userid']
@@ -496,7 +494,7 @@ def get_jobject():
 
 def main():
     # setup logging:
-    PLUGIN_LOGFILE = '/var/log/watts/plugin_capilot.log'
+    PLUGIN_LOGFILE = '/var/log/watts/plugin_rcauth.log'
     handler = RotatingFileHandler(PLUGIN_LOGFILE, maxBytes=10000, backupCount=1)
     logging.basicConfig(filename=PLUGIN_LOGFILE, level=logging.DEBUG,
             format="[%(asctime)s] {%(filename)s:%(funcName)s:%(lineno)d} %(levelname)s - %(message)s")

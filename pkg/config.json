@@ -1,6 +1,6 @@
 {
     "pkg" : {
-        "name" : "watts_plugin_capilot",
+        "name" : "watts_plugin_rcauth",
         "short_desc" : "WaTTS Plugin for RcAuth",
         "version" : "0.0.1",
         "maintainer" : "KIT/SCC <watts-development@lists.kit.edu>"

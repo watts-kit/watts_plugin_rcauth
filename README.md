@@ -1,9 +1,9 @@
 # Plugin Configuration #
-The capilot plugin needs several configuration variables defined in watts.conf:
+The rcauth plugin needs several configuration variables defined in watts.conf:
 Here is an example:
 
 ```
- service.RCauth_plugin.description                      = DEVEL EGI AAI Pilot Certificates from RCauth Demo CA
+ service.RCauth_plugin.description                      = Certificates from RCauth Demo CA
  service.RCauth_plugin.credential_limit                 = infinite
  service.RCauth_plugin.connection.type                  = local   
  service.RCauth_plugin.cmd_env_use                      = true    
@@ -11,12 +11,12 @@ Here is an example:
  service.RCauth_plugin.authz.allow.any.sub.any          = true    
  service.RCauth_plugin.pass_access_token                = true    
  service.RCauth_plugin.allow_same_state                 = true    
- service.RCauth_plugin.cmd                              = /var/lib/watts/plugins/watts_plugin_capilot/plugin/capilot/capilot.py
- service.RCauth_plugin.plugin.plugin_base_dir           = /var/lib/watts/plugins/watts_plugin_capilot/plugin/capilot/
+ service.RCauth_plugin.cmd                              = /var/lib/watts/plugins/watts_plugin_rcauth/plugin/rcauth/rcauth.py
+ service.RCauth_plugin.plugin.plugin_base_dir           = /var/lib/watts/plugins/watts_plugin_rcauth/plugin/rcauth/
  service.RCauth_plugin.plugin.prefix                    = WaTTS   
  service.RCauth_plugin.plugin.client_id                 = <OIDC client ID>
  service.RCauth_plugin.plugin.client_secret_key         = <Key for lookup of client secret in passwordd>
- service.RCauth_plugin.plugin.rcauth_op_entry           = ca_pilot
+ service.RCauth_plugin.plugin.rcauth_op_entry           = rcauth_plugin
  service.RCauth_plugin.plugin.myproxy_server            = master.data.kit.edu
  service.RCauth_plugin.plugin.myproxy_cert              = /var/lib/watts/.globus/usercert.pem
  service.RCauth_plugin.plugin.myproxy_key               = /var/lib/watts/.globus/decrypted-userkey.pem
@@ -31,12 +31,12 @@ passed directly to the plugin, while others are variables destined for
 Watts.
 
 The ``` service.RCauth_plugin.cmd ``` entries should point to the
-capilot.py file of where you placed the git checkout. 
+rcauth.py file of where you placed the git checkout. 
 
 The non-self-explanatory stuff is as follows: 
 
 - plugin.rcauth_op_entry: This points to a WaTTS openid section that is
-  named "ca_pilot" in our case.
+  named "rcauth_plugin" in our case.
 - client_id and client_secret_key hold the same information that is
   reqpeated in the openid section. This is because they also need to be
   accessible from the plugin.
@@ -73,7 +73,7 @@ rm EGISimpleDemoCA.tgz
 ## Install passwordd
 Passwordd is a daemon that stores passwords in memory. Watts makes heavy
 use of it, so no OIDC client secrets need to be kept in memore. The
-capilot plugin does the same thing.
+rcauth plugin does the same thing.
 
 https://github.com/watts-kit/passwordd
 
@@ -98,7 +98,7 @@ Also, get the latest *trust chain* from the *myproxy server*:
 ```
 myproxy-get-trustroots -s master.data.kit.edu
 ```
-For the configuration of the *capilot* plugin, check the documentation for the
+For the configuration of the *rcauth* plugin, check the documentation for the
 *watts.conf*.
 
 Also check that the *local time* is set as *Europe/Berlin*, (reboot may be
