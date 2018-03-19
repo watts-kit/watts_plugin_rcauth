@@ -44,6 +44,17 @@ The non-self-explanatory stuff is as follows:
 One known bug with Watts is, that empty lines with whitespaces will cause
 the config parser to crash and thereby watts won't start.
 
+# Packaging
+
+Use [indigo-dc/watts-plugin-packager](https://github.com/indigo-dc/watts-plugin-packager) to build Debian / RPM / ArchLinux packages:
+
+```
+ $ ./makepkg.sh https://github.com/watts-kit/watts_plugin_rcauth/raw/master/pkg/config.json
+```
+
+Note that not all of the packages listed below are available on all targets.
+Install manually as needed.
+
 
 # Dependency Installation and configuration
 ## Install additional packages
