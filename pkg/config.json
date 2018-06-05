@@ -2,27 +2,13 @@
     "pkg" : {
         "name" : "watts_plugin_rcauth",
         "short_desc" : "WaTTS Plugin for RcAuth",
-        "version" : "0.0.1",
+        "long_desc" : "This plugin connects to an RCAuth CA that issues certificates. It also connects to a myproxy server to safely store intermediate end entity certificates",
+        "version" : "0.0.2",
         "maintainer" : "KIT/SCC <watts-development@lists.kit.edu>"
     },
-    "archive" : {
-        "targz": "https://github.com/watts-kit/watts_plugin_rcauth/archive/0.0.1.tar.gz"
-    },
     "deps" : {
-        "deb" : [
-            "apt-transport-https",
-            "igtf-policy-classic",
-            "igtf-policy-iota",
-            "myproxy",
-            "globus-proxy-utils",
-            "python",
-            "python-openssl"
-        ],
-        "rpm" : [
-            "myproxy",
-            "globus-proxy-utils",
-            "python",
-            "pyOpenSSL"
-        ]
+        "arch" : ["python", "python-openssl"],
+        "deb" : ["python", "python-openssl"],
+        "rpm" : ["python", "python-openssl"]
     }
 }
